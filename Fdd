@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>해산물 게시판</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('https://www.example.com/ocean-background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+        header {
+            background-color: rgba(0, 128, 128, 0.8);
+            color: white;
+            text-align: center;
+            padding: 1rem 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 2rem auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            color: #000;
+            border-radius: 10px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .form-group button {
+            background-color: rgba(0, 128, 128, 0.8);
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: rgba(0, 102, 102, 0.8);
+        }
+        .hidden {
+            display: none;
+        }
+        .post {
+            border-bottom: 1px solid #ddd;
+            padding: 1rem 0;
+            position: relative;
+        }
+        .post:last-child {
+            border-bottom: none;
+        }
+        .post h3 {
+            margin: 0 0 0.5rem;
+        }
+        .post p {
+            margin: 0;
+        }
+        .download-button {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background-color: rgba(0, 128, 128, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .download-button:hover {
+            background-color: rgba(0, 102, 102, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>해산물 게시판</h1>
+    </header>
+    <div class="container">
+        <button id="toggleUpload">업로드 창 열기</button>
+        <div id="uploadForm" class="hidden">
+            <div class="form-group">
+                <label for="title">제목</label>
+                <input type="text" id="title" placeholder="제목을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="content">내용</label>
+                <textarea id="content" rows="5" placeholder="내용을 입력하세요"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="media">사진/동영상 업로드</label>
+                <input type="file" id="media" accept="image/*,video/*" multiple>
+            </div>
+            <div class="form-group">
+                <button id="submit">글 올리기</button>
+            </div>
+        </div>
+        <div id="posts">
+            <!-- 게시글 목록이 여기에 추가됩니다 -->
+        </div>
+    </div>
+    <script>
+        const toggleUploadButton = document.getElementById('toggleUpload');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitButton = document.getElementById('submit');
+        const titleInput = document.getElementById('title');
+        const contentInput = document.getElementById('content');
+        const mediaInput = document.getElementById('media');
+        const postsContainer = document.getElementById('posts');
+
+        toggleUploadButton.addEventListener('click', () => {
+            uploadForm.classList.toggle('hidden');
+        });
+
+        function savePostsToLocalStorage(posts) {
+            localStorage.setItem('posts', JSON.stringify(posts));
+        }
+
+        function loadPostsFromLocalStorage() {
+            const posts = localStorage.getItem('posts');
+            return posts ? JSON.parse(posts) : [];
+        }
+
+        function createPostElement(post) {
+            const postDiv = document.createElement('div');
+            postDiv.classList.add('post');
+
+            const postTitle = document.createElement('h3');
+            postTitle.textContent = post.title;
+
+            const postContent = document.createElement('p');
+            postContent.textContent = post.content;
+
+            postDiv.appendChild(postTitle);
+            postDiv.appendChild(postContent);
+
+            if (post.media && post.media.length > 0) {
+                post.media.forEach(mediaSrc => {
+                    const mediaElement = document.createElement(mediaSrc.type.startsWith('image') ? 'img' : 'video');
+                    mediaElement.src = mediaSrc.src;
+                    mediaElement.controls = true;
+                    mediaElement.style.maxWidth = '100%';
+                    mediaElement.style.marginTop = '1rem';
+                    postDiv.appendChild(mediaElement);
+
+                    const downloadButton = document.createElement('a');
+                    downloadButton.href = mediaSrc.src;
+                    downloadButton.download = mediaSrc.name;
+                    downloadButton.textContent = '다운로드';
+                    downloadButton.classList.add('download-button');
+                    postDiv.appendChild(downloadButton);
+                });
+            }
+
+            postsContainer.appendChild(postDiv);
+        }
+
+        function createPost(title, content, mediaFiles) {
+            const mediaArray = mediaFiles.map(file => ({
+                src: URL.createObjectURL(file),
+                name: file.name,
+                type: file.type
+            }));
+
+            const newPost = {
+                title,
+                content,
+                media: mediaArray
+            };
+
+            const posts = loadPostsFromLocalStorage();
+            posts.push(newPost);
+            savePostsToLocalStorage(posts);
+
+            createPostElement(newPost);
+        }
+
+        submitButton.addEventListener('click', () => {
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+            const mediaFiles = Array.from(mediaInput.files);
+
+            if (title && content) {
+                createPost(title, content, mediaFiles);
+                titleInput.value = '';
+                contentInput.value = '';
+                mediaInput.value = '';
+                uploadForm.classList.add('hidden');
+            } else {
+                alert('제목과 내용을 모두 입력하세요!');
+            }
+        });
+
+        // Load posts from localStorage on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const posts = loadPostsFromLocalStorage();
+            posts.forEach(createPostElement);
+        });
+    </script>
+</body>
+</html>
